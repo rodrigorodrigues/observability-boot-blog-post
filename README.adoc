@@ -2,6 +2,14 @@
 
 Code supporting the blog post related to how Spring Boot works with OpenTelemetry.
 
+== Changes
+
+* Added Kafka Avro Support
+* Added Protobuf support for Otel
+* Added Spring Data JPA
+* Added Instrumentation for DataSource
+* Added (Mysql) and proc to simulate slow queries
+
 == Building the docs
 
 [source,bash]

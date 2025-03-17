@@ -1,0 +1,26 @@
+{
+  "type": "record",
+  "name": "Person",
+  "namespace": "com.example.schema.avro",
+  "fields": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "createdAt",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "name",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+server.port: 7654
+spring.application.name: server
+
+# For OTLP - OTLP Prometheus endpoint, OTLP requires pushing
+management.otlp.metrics.export.url: http://localhost:9090/api/v1/otlp/v1/metrics
+# only for demo purposes
+management.otlp.metrics.export.step: 2s
+# All traces should be sent to latency analysis tool
+management.tracing.sampling.probability: 1.0
+# OTLP endpoint - OTLP Tempo endpoint
+management.zipkin.tracing.endpoint: http://localhost:4318/v1/traces
+management.zipkin.tracing.encoding: PROTO3
+
+# For Exemplars to work we need histogram buckets - TODO: Micrometer OTLP doesn't yet support exemplars
+management.metrics.distribution.percentiles-histogram.http.server.requests: true
+spring.jpa.show-sql: true
+spring.jpa.hibernate.ddl-auto: update
+jdbc.datasource-proxy.query.enable-logging: true
+jdbc.datasource-proxy.slow-query.enable-logging: true
+spring.h2.console.enabled: true
+spring.datasource.username: myuser
+spring.datasource.password: secret
+spring.datasource.url: jdbc:mysql://localhost:3306/mydatabase
+#spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+jdbc.datasource-proxy.slow-query.threshold: 5
+
+spring:
+  kafka:
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+      allow.auto.create.topics: true
+      specific.avro.reader: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    bootstrap-servers: ${KAFKA_URL:localhost:9092}
+    template:
+      default-topic: person-topic
+      observationEnabled: true

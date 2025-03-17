@@ -1,0 +1,30 @@
+# For OTLP - OTLP Prometheus endpoint, OTLP requires pushing
+management.otlp.metrics.export.url: http://localhost:9090/api/v1/otlp/v1/metrics
+# only for demo purposes
+management.otlp.metrics.export.step: 2s
+# All traces should be sent to latency analysis tool
+management.tracing.sampling.probability: 1.0
+# OTLP endpoint - OTLP Tempo endpoint
+management.zipkin.tracing.endpoint: http://localhost:4318/v1/traces
+management.zipkin.tracing.encoding: PROTO3
+# For Exemplars to work we need histogram buckets - TODO: Micrometer OTLP doesn't yet support exemplars
+management.metrics.distribution.percentiles-histogram.http.client.requests: true
+
+spring:
+  application:
+    name: kafka-consumer
+
+  kafka:
+    consumer:
+      properties:
+        enable.auto.commit: false
+        allow.auto.create.topics: true
+        specific.avro.reader: true
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      group-id: kafka-consumer-group
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+      allow.auto.create.topics: true
+      specific.avro.reader: true

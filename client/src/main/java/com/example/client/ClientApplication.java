@@ -1,20 +1,21 @@
 package com.example.client;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.javafaker.Faker;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @SpringBootApplication
 public class ClientApplication {
@@ -35,12 +36,24 @@ public class ClientApplication {
 
 	// tag::runner[]
 	@Bean
-	CommandLineRunner myCommandLineRunner(ObservationRegistry registry, RestTemplate restTemplate) {
+	CommandLineRunner myCommandLineRunner(ObservationRegistry registry, RestTemplate restTemplate, ObjectMapper objectMapper) {
 		Random highCardinalityValues = new Random(); // Simulates potentially large number of values
 		List<String> lowCardinalityValues = Arrays.asList("userType1", "userType2", "userType3"); // Simulates low number of values
+		Faker faker = new Faker();
 		return args -> {
 			// let's simulate endless traffic
-			while(true) {
+			String requestId = null;
+			AtomicBoolean failedLastRequest = new AtomicBoolean(false);
+			while (true) {
+				if (requestId == null || failedLastRequest.getAndSet(false) || highCardinalityValues.nextInt(10, 50) % 2 == 0) {
+					requestId = UUID.randomUUID().toString();
+					log.info("Generated new requestId: {}", requestId);
+				}
+				Map<String, String> request = new HashMap<>();
+				String fullName = faker.name().fullName();
+				request.put("name", fullName);
+				request.put("requestId", requestId);
+				String payload = objectMapper.writeValueAsString(request);
 				String highCardinalityUserId = String.valueOf(highCardinalityValues.nextLong(100_000));
 				// Example of using the Observability API manually
 				// <my.observation> is a "technical" name that does not depend on the context. It will be used to name e.g. Metrics
@@ -53,9 +66,20 @@ public class ClientApplication {
 						.contextualName("command-line-runner")
 						// The following lambda will be executed with an observation scope (e.g. all the MDC entries will be populated with tracing information). Also the observation will be started, stopped and if an error occurred it will be recorded on the observation
 						.observe(() -> {
-							log.info("Will send a request to the server"); // Since we're in an observation scope - this log line will contain tracing MDC entries ...
-							String response = restTemplate.getForObject("http://localhost:7654/user/{userId}", String.class, highCardinalityUserId); // Boot's RestTemplate instrumentation creates a child span here
-							log.info("Got response [{}]", response); // ... so will this line
+							log.info("Will send a request to the server with payload: {}", payload); // Since we're in an observation scope - this log line will contain tracing MDC entries ...
+							HttpHeaders httpHeaders = new HttpHeaders();
+							httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+							HttpEntity<String> httpEntity = new HttpEntity<>(payload, httpHeaders);
+							try {
+								ResponseEntity<String> response = restTemplate.exchange("http://localhost:7654/user", HttpMethod.POST, httpEntity, String.class); // Boot's RestTemplate instrumentation creates a child span here
+								log.info("Got response [{}] - [{}]", response.getStatusCode(), response.getBody()); // ... so will this line
+								if (response.getStatusCode().isError()) {
+									failedLastRequest.set(true);
+								}
+							} catch (Exception e) {
+								log.warn("Failed to request server", e);
+								failedLastRequest.set(true);
+							}
 						});
 				Thread.sleep(highCardinalityValues.nextLong(500));
 			}
