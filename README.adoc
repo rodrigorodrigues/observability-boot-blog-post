@@ -26,6 +26,6 @@ Just run the Maven command to build the samples
 $ ./mvnw clean install
 ----
 
-![Slow Query](images/slow_query.png "Slow Query")
+image::https://raw.githubusercontent.com/rodrigorodrigues/observability-boot-blog-post/main/images/slow_query.png[]
 
 include::RUNNING.adoc[]
