@@ -53,6 +53,7 @@
 			<artifactId>datasource-micrometer-spring-boot</artifactId>
 			<version>1.1.0</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
@@ -85,31 +86,49 @@
 		</dependency>
 		<!-- For Metrics -->
 		<!-- For OTLP -->
+<!--
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-otlp</artifactId>
 		</dependency>
+-->
 
 		<!-- Brave version -->
 		<!-- For Tracing -->
+<!--
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
 		</dependency>
+-->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-otel</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>io.opentelemetry.instrumentation</groupId>
+					<artifactId>opentelemetry-instrumentation-api-incubator</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 		<!-- For Latency Visualization -->
+<!--
 		<dependency>
 			<groupId>io.zipkin.contrib.otel</groupId>
 			<artifactId>encoder-brave</artifactId>
-			<version>0.1.0</version>
+			<version>0.2.0</version>
 		</dependency>
+-->
 
 		<!-- For pushing logs out -->
+<!--
 		<dependency>
 			<groupId>com.github.loki4j</groupId>
 			<artifactId>loki-logback-appender</artifactId>
 			<version>1.5.2</version>
 			<scope>runtime</scope>
 		</dependency>
+-->
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -118,10 +137,37 @@
 		</dependency>
 
 		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-api</artifactId>
+			<groupId>io.opentelemetry.contrib</groupId>
+			<artifactId>opentelemetry-samplers</artifactId>
+			<version>1.45.0-alpha</version>
 		</dependency>
+
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-spring-boot-starter</artifactId>
+		</dependency>
+
+
+		<!--
+                <dependency>
+                    <groupId>io.opentelemetry</groupId>
+                    <artifactId>opentelemetry-api</artifactId>
+                </dependency>
+        -->
 	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.opentelemetry.instrumentation</groupId>
+				<artifactId>opentelemetry-instrumentation-bom</artifactId>
+				<version>2.14.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 
 	<build>
 		<plugins>

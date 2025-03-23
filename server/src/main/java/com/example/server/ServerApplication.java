@@ -4,6 +4,12 @@ import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationHandler;
 import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.logs.Severity;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.contrib.sampler.RuleBasedRoutingSampler;
+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;
+import io.opentelemetry.semconv.UrlAttributes;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -11,11 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
@@ -33,6 +39,22 @@ public class ServerApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ServerApplication.class, args);
+	}
+
+	@Bean
+	public AutoConfigurationCustomizerProvider otelCustomizer() {
+		return p -> {
+			p.addLogRecordProcessorCustomizer((logRecordProcessor, configProperties) -> (context, logRecord) -> {
+				if (logRecord.toLogRecordData().getSeverity().getSeverityNumber() >= Severity.INFO.getSeverityNumber()) {
+					logRecordProcessor.onEmit(context, logRecord);
+				}
+			});
+			p.addSamplerCustomizer(
+					(fallback, config) ->
+							RuleBasedRoutingSampler.builder(SpanKind.SERVER, fallback)
+									.drop(UrlAttributes.URL_PATH, "^/actuator")
+									.build());
+		};
 	}
 
 }

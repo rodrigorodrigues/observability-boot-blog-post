@@ -5,10 +5,11 @@ Code supporting the blog post related to how Spring Boot works with OpenTelemetr
 == Changes
 
 * Added Kafka Avro Support
-* Added Protobuf support for Otel
 * Added Spring Data JPA
-* Added Instrumentation for DataSource
-* Added (Mysql) and proc to simulate slow queries
+* Added Instrumentation for DataSource(`net.ttddyy.observation:datasource-micrometer-spring-boot`)
+* Added (Mysql) and sproc to simulate slow queries
+* Added String Boot OpenTelemetry Instrumentation(`io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter`)
+* Added Otel-Collector
 
 == Building the docs
 
@@ -26,6 +27,8 @@ Just run the Maven command to build the samples
 $ ./mvnw clean install
 ----
 
-image::https://raw.githubusercontent.com/rodrigorodrigues/observability-boot-blog-post/main/images/slow_query.png[]
+image::images/observability_trace_id.png[]
+image::images/node_graph.png[]
+image::images/service_graph.png[]
 
 include::RUNNING.adoc[]

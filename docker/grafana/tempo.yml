@@ -16,6 +16,13 @@ storage:
     local:
       path: /tmp/tempo/blocks
 metrics_generator:
+  processor:
+    service_graphs:
+      dimensions:
+        - service.name
+    span_metrics:
+      dimensions:
+        - service.name
   registry:
     external_labels:
       source: tempo

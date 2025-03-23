@@ -45,6 +45,8 @@ datasources:
             datasourceUid: Prometheus
           nodeGraph:
             enabled: true
+          serviceGraph:
+            enabled: true
     - name: Loki
       type: loki
       uid: loki

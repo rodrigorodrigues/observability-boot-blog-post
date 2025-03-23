@@ -58,7 +58,7 @@
                         "uid": "loki"
                     },
                     "editorMode": "builder",
-                    "expr": "{app=~\".+\"} |= `$traceId`",
+                    "expr": "{service_name=~\".+\"} | traceId = \"$traceId\" or log_body_template = \"$traceId\"",
                     "queryType": "range",
                     "refId": "A"
                 }

@@ -4,6 +4,11 @@ import com.example.schema.avro.Person;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.tracing.Tracer;
+import io.opentelemetry.api.logs.Severity;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.contrib.sampler.RuleBasedRoutingSampler;
+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;
+import io.opentelemetry.semconv.UrlAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -17,8 +22,6 @@ import java.util.Random;
 
 @SpringBootApplication
 public class KafkaConsumerApplication {
-    private static final Logger log = LoggerFactory.getLogger(KafkaConsumerApplication.class);
-
     public static void main(String[] args) {
         SpringApplication.run(KafkaConsumerApplication.class, args);
     }
@@ -27,6 +30,22 @@ public class KafkaConsumerApplication {
     @Bean
     MyKafkaListener myKafkaListener(Tracer tracer, ObservationRegistry observationRegistry) {
         return new MyKafkaListener(tracer, observationRegistry);
+    }
+
+    @Bean
+    public AutoConfigurationCustomizerProvider otelCustomizer() {
+        return p -> {
+            p.addLogRecordProcessorCustomizer((logRecordProcessor, configProperties) -> (context, logRecord) -> {
+                if (logRecord.toLogRecordData().getSeverity().getSeverityNumber() >= Severity.INFO.getSeverityNumber()) {
+                    logRecordProcessor.onEmit(context, logRecord);
+                }
+            });
+            p.addSamplerCustomizer(
+                    (fallback, config) ->
+                            RuleBasedRoutingSampler.builder(SpanKind.SERVER, fallback)
+                                    .drop(UrlAttributes.URL_PATH, "^/actuator")
+                                    .build());
+        };
     }
 
 }

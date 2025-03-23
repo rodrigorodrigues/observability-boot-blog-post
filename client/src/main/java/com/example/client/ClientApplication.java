@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.opentelemetry.api.logs.Severity;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.contrib.sampler.RuleBasedRoutingSampler;
+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;
+import io.opentelemetry.semconv.UrlAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -33,6 +38,22 @@ public class ClientApplication {
 		return builder.build();
 	}
 	// end::rest-template[]
+
+	@Bean
+	public AutoConfigurationCustomizerProvider otelCustomizer() {
+		return p -> {
+			p.addLogRecordProcessorCustomizer((logRecordProcessor, configProperties) -> (context, logRecord) -> {
+				if (logRecord.toLogRecordData().getSeverity().getSeverityNumber() >= Severity.INFO.getSeverityNumber()) {
+					logRecordProcessor.onEmit(context, logRecord);
+				}
+			});
+			p.addSamplerCustomizer(
+					(fallback, config) ->
+							RuleBasedRoutingSampler.builder(SpanKind.SERVER, fallback)
+									.drop(UrlAttributes.URL_PATH, "^/actuator")
+									.build());
+		};
+	}
 
 	// tag::runner[]
 	@Bean

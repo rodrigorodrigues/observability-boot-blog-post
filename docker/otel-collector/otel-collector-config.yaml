@@ -1,27 +1,83 @@
 extensions:
   zpages:
-    endpoint: 0.0.0.0:55679
+    endpoint: '0.0.0.0:55679'
 
 receivers:
   otlp:
     protocols:
       http:
-        endpoint: 0.0.0.0:4318
-
+        endpoint: '0.0.0.0:4318'
+  prometheus:
+    config:
+      global:
+        external_labels:
+          p8s_logzio_name: spm-demo-otel
+      scrape_configs:
+        - job_name: 'atm'
+          scrape_interval: 15s
+          static_configs:
+            - targets: [ "0.0.0.0:8889" ]
 processors:
   batch:
 
 exporters:
-  traces:
-    endpoint: http://tempo:4318
+  otlphttp:
+    endpoint: http://loki:3100/otlp
+  otlp:
+    endpoint: http://tempo:4317
+    tls:
+      insecure: true
   debug:
     verbosity: detailed
+  prometheus/servicegraph:
+    endpoint: prometheus:9090
+    namespace: servicegraph
   prometheusremotewrite:
-    endpoint: http://prometheus:9090/api/v1/push
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+
+  # metric exporter
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+# connectors to generate metrics from the incoming spans
+connectors:
+  # basic service graph
+  servicegraph:
+    latency_histogram_buckets: [100ms, 250ms, 1s, 5s, 10s]
+  # a bit more elaborate spanmetrics
+  spanmetrics:
+    # this is relevant, since grafana expects the traces_spanmetrics_ prefix
+    namespace: traces.spanmetrics
+    # this is relevant, since grafana expects the historgram metrics in seconds
+    histogram:
+      unit: "s"
+    # the rest is close to default with some minor QoL additions
+    dimensions:
+      - name: http.method
+        default: GET
+      - name: http.status_code
+    exemplars:
+      enabled: true
+    events:
+      enabled: true
+      dimensions:
+        - name: exception.type
+        - name: exception.message
+    resource_metrics_key_attributes:
+      - service.name
+      - telemetry.sdk.language
+      - telemetry.sdk.name
 
 service:
   pipelines:
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, spanmetrics, servicegraph, prometheus]
       processors: [batch]
-      exporters: [debug, logging, traces, prometheusremotewrite]
+      exporters: [debug, prometheusremotewrite]
+    traces:
+      receivers: [otlp]
+      exporters: [debug, otlp, spanmetrics, servicegraph]
+    logs:
+      receivers: [otlp]
+      exporters: [debug, otlphttp]
